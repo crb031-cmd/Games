@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ms Mcdonald Quiz</title>
+
+<style>
+    body{
+        margin:0;
+        height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        background:linear-gradient(135deg,#74ebd5,#9face6);
+        font-family:Arial, sans-serif;
+        overflow:hidden;
+    }
+
+    .box{
+        background:white;
+        padding:40px;
+        border-radius:20px;
+        text-align:center;
+        box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    h1{
+        margin-bottom:30px;
+        font-size:32px;
+    }
+
+    button{
+        padding:15px 35px;
+        font-size:22px;
+        border:none;
+        border-radius:12px;
+        cursor:pointer;
+        margin:10px;
+        transition:0.2s;
+    }
+
+    button:hover{
+        transform:scale(1.1);
+    }
+
+    #yesBtn{
+        background:#4caf50;
+        color:white;
+    }
+
+    #noBtn{
+        background:#f44336;
+        color:white;
+    }
+
+    #message{
+        margin-top:25px;
+        font-size:28px;
+        font-weight:bold;
+        color:#222;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h1>Is Ms Mcdonald cool?</h1>
+
+    <button id="yesBtn">Yes</button>
+    <button id="noBtn">No</button>
+
+    <div id="message"></div>
+</div>
+
+<script>
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const message = document.getElementById("message");
+
+noBtn.onclick = () => {
+    message.textContent = "RIGHT ANSWER 😎";
+};
+
+yesBtn.onclick = () => {
+    document.body.innerHTML = `
+        <div style="
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            background:black;
+            color:red;
+            font-size:50px;
+            font-family:Arial;
+        ">
+            Closing...
+        </div>
+    `;
+
+    setTimeout(() => {
+        window.close();
+
+        // If browser blocks closing
+        document.body.innerHTML = `
+        <div style="
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            background:black;
+            color:white;
+            font-size:40px;
+            font-family:Arial;
+        ">
+            You clicked YES 🤣
+        </div>
+        `;
+    }, 1000);
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Shooter Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    canvas {
+      display: block;
+      background: linear-gradient(#222, #111);
+    }
+
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 22px;
+      z-index: 10;
+    }
+
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      display: none;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu" style="position:absolute; inset:0; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; z-index:20;">
+    <h1 style="font-size:48px; margin:0;">2D Shooter</h1>
+
+    <label>Character Color</label>
+    <input type="color" id="colorPicker" value="#00ffff">
+
+    <label>Choose Weapon</label>
+    <select id="weaponSelect" style="padding:10px; font-size:18px; border-radius:10px;">
+      <option value="lmg">LMG</option>
+      <option value="shotgun">Shotgun</option>
+      <option value="shield">Shield</option>
+    </select>
+
+    <button onclick="startGame()">Start Game</button>
+    <button onclick="leaveGame()">Leave</button>
+  </div>
+  <div id="ui">Score: <span id="score">0</span></div>
+  <div id="deathText" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:72px; font-weight:bold; color:red; display:none; z-index:30;">YOU DIED</div>
+
+  
+
+  <canvas id="game"></canvas>
+
+  <script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const keys = {};
+let bullets = [];
+let enemies = [];
+let score = 0;
+let gameRunning = false;
+let currentWeapon = 'lmg';
+let lmgInterval = null;
+
+const player = {
+  x: canvas.width / 2,
+  y: canvas.height / 2,
+  size: 30,
+  speed: 5,
+  color: 'cyan'
+};
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, duration) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.frequency.value = freq;
+  gain.gain.value = 0.08;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+function shootBullet(angle, speed = 12, size = 5) {
+  bullets.push({
+    x: player.x,
+    y: player.y,
+    dx: Math.cos(angle) * speed,
+    dy: Math.sin(angle) * speed,
+    size
+  });
+}
+
+window.addEventListener('mousedown', e => {
+  if (!gameRunning) return;
+
+  if (currentWeapon === 'lmg') {
+    clearInterval(lmgInterval);
+
+    lmgInterval = setInterval(() => {
+      const angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
+      shootBullet(angle, 14, 4);
+      playSound(420, 0.08);
+    }, 80);
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  clearInterval(lmgInterval);
+});
+
+window.addEventListener('click', e => {
+  if (!gameRunning) return;
+
+  if (currentWeapon === 'shotgun') {
+    const angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
+
+    for (let i = -2; i <= 2; i++) {
+      shootBullet(angle + i * 0.15, 10, 5);
+    }
+
+    playSound(220, 0.15);
+  }
+
+  if (currentWeapon === 'shield') {
+    for (let i = 0; i < 100; i++) {
+      const angle = (Math.PI * 2 / 100) * i;
+      shootBullet(angle, 8, 6);
+    }
+
+    playSound(160, 0.25);
+  }
+});
+
+function spawnEnemy() {
+  const side = Math.floor(Math.random() * 4);
+  let x = 0;
+  let y = 0;
+
+  if (side === 0) {
+    x = Math.random() * canvas.width;
+    y = -40;
+  }
+
+  if (side === 1) {
+    x = canvas.width + 40;
+    y = Math.random() * canvas.height;
+  }
+
+  if (side === 2) {
+    x = Math.random() * canvas.width;
+    y = canvas.height + 40;
+  }
+
+  if (side === 3) {
+    x = -40;
+    y = Math.random() * canvas.height;
+  }
+
+  enemies.push({
+    x,
+    y,
+    size: 28,
+    speed: 1.5 + Math.random(),
+    color: 'red'
+  });
+}
+
+setInterval(() => {
+  if (gameRunning) {
+    spawnEnemy();
+  }
+}, 1000);
+
+function update() {
+  if (!gameRunning) return;
+
+  if (keys['w']) player.y -= player.speed;
+  if (keys['s']) player.y += player.speed;
+  if (keys['a']) player.x -= player.speed;
+  if (keys['d']) player.x += player.speed;
+
+  bullets.forEach((bullet, index) => {
+    bullet.x += bullet.dx;
+    bullet.y += bullet.dy;
+
+    if (
+      bullet.x < 0 ||
+      bullet.x > canvas.width ||
+      bullet.y < 0 ||
+      bullet.y > canvas.height
+    ) {
+      bullets.splice(index, 1);
+    }
+  });
+
+  enemies.forEach((enemy, enemyIndex) => {
+    const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+
+    enemy.x += Math.cos(angle) * enemy.speed;
+    enemy.y += Math.sin(angle) * enemy.speed;
+
+    const distToPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+
+    if (distToPlayer < 30) {
+      gameOver();
+    }
+
+    bullets.forEach((bullet, bulletIndex) => {
+      const dist = Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y);
+
+      if (dist < 20) {
+        enemies.splice(enemyIndex, 1);
+        bullets.splice(bulletIndex, 1);
+        score++;
+        document.getElementById('score').textContent = score;
+        playSound(120, 0.2);
+      }
+    });
+  });
+}
+
+function drawPlayer() {
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x - 15, player.y - 15, 30, 30);
+}
+
+function drawBullets() {
+  ctx.fillStyle = 'yellow';
+
+  bullets.forEach(bullet => {
+    ctx.beginPath();
+    ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawEnemies() {
+  enemies.forEach(enemy => {
+    ctx.fillStyle = enemy.color;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, enemy.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawPlayer();
+  drawBullets();
+  drawEnemies();
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+  player.color = document.getElementById('colorPicker').value;
+  currentWeapon = document.getElementById('weaponSelect').value;
+
+  bullets = [];
+  enemies = [];
+  score = 0;
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('deathText').style.display = 'none';
+
+  gameRunning = true;
+}
+
+function leaveGame() {
+  gameRunning = false;
+  document.getElementById('menu').style.display = 'flex';
+}
+
+function gameOver() {
+  gameRunning = false;
+  playSound(80, 0.5);
+
+  document.getElementById('deathText').style.display = 'block';
+
+  setTimeout(() => {
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('deathText').style.display = 'none';
+  }, 1200);
+}
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+gameLoop();
+</script>
+</body>
+</html>
